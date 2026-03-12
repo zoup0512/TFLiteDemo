@@ -61,7 +61,13 @@ class MainActivity : ComponentActivity() {
         initONNXModel()
 
         // 加载测试图片（assets/test.png）
-        inputBitmap = loadBitmapFromAssets("test.png")
+        val loadedBitmap = loadBitmapFromAssets("test.png")
+        inputBitmap = loadedBitmap
+        if (loadedBitmap == null) {
+            inferenceResult = "❌ 请在 assets 目录添加 test.png 图片"
+        } else {
+            android.util.Log.d("ONNX_DEBUG", "输入图片: ${loadedBitmap.width}x${loadedBitmap.height}")
+        }
 
         setContent {
             TFLiteDemoTheme {
@@ -177,6 +183,20 @@ class MainActivity : ComponentActivity() {
         val channels: Long
     )
 
+    // 调试：用第一个像素的 RGB 值判断输入输出范围
+    private fun debugTensorRange(name: String, floatArray: FloatArray, channels: Int) {
+        if (floatArray.isEmpty()) return
+        val sb = StringBuilder()
+        sb.append("$name 范围: min=${floatArray.minOrNull()}, max=${floatArray.maxOrNull()}")
+        if (floatArray.size >= channels) {
+            sb.append(", 前$channels 值: ")
+            for (i in 0 until channels) {
+                sb.append("${floatArray[i]}, ")
+            }
+        }
+        android.util.Log.d("ONNX_DEBUG", sb.toString())
+    }
+
     // 解析 ONNX 张量规格（适配 Long 类型，ONNX 用 Long 表示 shape）
     private fun parseImageTensorSpec(shape: LongArray): ImageTensorSpec {
         if (shape.size != 4) {
@@ -232,6 +252,7 @@ class MainActivity : ComponentActivity() {
         val inputTensor = when (inputType) {
             OnnxJavaType.FLOAT -> {
                 val floatBuffer = bitmapToFloatArray(resized, inputSpec.layout)
+                debugTensorRange("输入", floatBuffer, 6)
                 val fb = FloatBuffer.wrap(floatBuffer)
                 OnnxTensor.createTensor(ortEnvironment!!, fb, inputShape)
             }
@@ -275,6 +296,7 @@ class MainActivity : ComponentActivity() {
             OnnxJavaType.FLOAT -> {
                 val rawValue = (outputValue as OnnxTensor).value
                 val floatArray = flattenToFloatArray(rawValue)
+                debugTensorRange("输出", floatArray, outC)
                 floatArrayToBitmap(floatArray, outW, outH, outC, outputSpec.layout)
             }
             OnnxJavaType.UINT8 -> {
@@ -305,9 +327,9 @@ class MainActivity : ComponentActivity() {
             for (i in pixels.indices) {
                 val c = pixels[i]
                 val baseIdx = i * 3
-                floatArray[baseIdx] = ((c shr 16) and 0xFF) / 255f
-                floatArray[baseIdx + 1] = ((c shr 8) and 0xFF) / 255f
-                floatArray[baseIdx + 2] = (c and 0xFF) / 255f
+                floatArray[baseIdx] = ((c shr 16) and 0xFF).toFloat()  // R: 0-255
+                floatArray[baseIdx + 1] = ((c shr 8) and 0xFF).toFloat()  // G: 0-255
+                floatArray[baseIdx + 2] = (c and 0xFF).toFloat()  // B: 0-255
             }
             floatArray
         } else {
@@ -319,9 +341,9 @@ class MainActivity : ComponentActivity() {
 
             for (i in pixels.indices) {
                 val c = pixels[i]
-                rArray[i] = ((c shr 16) and 0xFF) / 255f
-                gArray[i] = ((c shr 8) and 0xFF) / 255f
-                bArray[i] = (c and 0xFF) / 255f
+                rArray[i] = ((c shr 16) and 0xFF).toFloat()
+                gArray[i] = ((c shr 8) and 0xFF).toFloat()
+                bArray[i] = (c and 0xFF).toFloat()
             }
 
             // 拼接 C 维度
