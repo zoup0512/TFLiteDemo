@@ -57,11 +57,11 @@ dependencies {
     debugImplementation libs.ui.test.manifest
 
     // 新增 TFLite 依赖（核心）
-//    implementation 'org.tensorflow:tensorflow-lite:2.16.1'
+    implementation 'org.tensorflow:tensorflow-lite:2.16.1'
 //    // 可选：如果模型用了NNAPI加速，添加这个
-//    implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'
+    implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'
 
-    implementation 'com.microsoft.onnxruntime:onnxruntime-android:1.24.3'
+//    implementation 'com.microsoft.onnxruntime:onnxruntime-android:1.24.3'
     // 可选：GPU版（安卓8.0+，需设备支持OpenCL）
 //    implementation 'com.microsoft.onnxruntime:onnxruntime-android-gpu:1.24.3'
     
